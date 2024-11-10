@@ -1,0 +1,247 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product CRUD App</title>
+    <style>
+        #message {
+            margin-top: 10px;
+            padding: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Product CRUD App</h1>
+    <div id="message"></div>   
+    <form id="product-form">
+        <input type="text" id="name" placeholder="Product Name" required />
+        <input type="number" id="price" placeholder="Price" required min="0" />
+        <textarea id="description" placeholder="Description"></textarea>
+        <button type="submit">Add Product</button>
+    </form>
+
+    <h2>Products</h2>
+    <ul id="product-list"></ul>
+
+    <script>
+        const messageDiv = document.getElementById('message'); // Get message container
+
+        async function fetchProducts() {
+            try {
+                const response = await fetch('/products');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const products = await response.json();
+                displayProducts(products);
+            } catch (error) {
+                displayMessage(`Error fetching products: ${error.message}`, 'error');
+            }
+        }
+
+        function displayProducts(products) {
+            const productList = document.getElementById('product-list');
+            productList.innerHTML = '';
+
+            products.forEach(product => {
+                const li = document.createElement('li');
+                li.textContent = `${product.name} - $${product.price}`;
+                productList.appendChild(li);
+            });
+        }
+
+        async function addProduct(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const price = document.getElementById('price').value;
+            const description = document.getElementById('description').value;
+            console.log({ name, price, description })
+            try {
+                const response = await fetch('/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price, description })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json(); //Try to get error details from server
+                    const errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
+                    throw new Error(errorMessage);
+                }
+
+                displayMessage('Product added successfully!', 'success');
+                fetchProducts();
+                document.getElementById('product-form').reset(); // Clear the form
+            } catch (error) {
+                displayMessage(`Error adding product: ${error.message}`, 'error');
+            }
+        }
+
+        function displayMessage(message, type) {
+            messageDiv.textContent = message;
+            messageDiv.className = type; // Add a class for styling (see CSS)
+        }
+
+        document.getElementById('product-form').addEventListener('submit', addProduct);
+        document.addEventListener('DOMContentLoaded', fetchProducts);
+    </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product CRUD App</title>
+    <style>
+        #message {
+            margin-top: 10px;
+            padding: 10px;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+        .product-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .product-item button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Product CRUD App</h1>
+    <div id="message"></div>
+    <form id="product-form">
+        <input type="text" id="name" placeholder="Product Name" required />
+        <input type="number" id="price" placeholder="Price" required min="0" />
+        <textarea id="description" placeholder="Description"></textarea>
+        <button type="submit">Add Product</button>
+    </form>
+
+    <h2>Products</h2>
+    <ul id="product-list"></ul>
+
+    <script>
+        const apiUrl = 'http://localhost:3000/products'; // Ensure this is the correct API URL
+
+        const messageDiv = document.getElementById('message');
+
+        async function fetchProducts() {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                displayProducts(data.data);
+            } catch (error) {
+                displayMessage(`Error fetching products: ${error.message}`, 'error');
+            }
+        }
+
+        function displayProducts(products) {
+            const productList = document.getElementById('product-list');
+            productList.innerHTML = '';
+            products.forEach(product => {
+                const li = document.createElement('li');
+                li.classList.add('product-item');
+                li.dataset.id = product._id;
+                li.innerHTML = `
+                    ${product.name} - $${product.price}
+                    <button onclick="editProduct('${product._id}', '${product.name}', ${product.price}, '${product.description}')">Edit</button>
+                    <button onclick="deleteProduct('${product._id}')">Delete</button>
+                `;
+                productList.appendChild(li);
+            });
+        }
+
+        async function addProduct(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const price = document.getElementById('price').value;
+            const description = document.getElementById('description').value;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price, description })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.errors ? errorData.errors[0].message : 'Failed to add product');
+                }
+                displayMessage('Product added successfully!', 'success');
+                fetchProducts();
+                document.getElementById('product-form').reset();
+            } catch (error) {
+                displayMessage(`Error adding product: ${error.message}`, 'error');
+            }
+        }
+
+        function editProduct(id, name, price, description) {
+            document.getElementById('name').value = name;
+            document.getElementById('price').value = price;
+            document.getElementById('description').value = description;
+            document.getElementById('product-form').dataset.id = id;
+            document.getElementById('product-form').querySelector('button').textContent = 'Update Product';
+        }
+
+        async function updateProduct(id) {
+            const name = document.getElementById('name').value;
+            const price = document.getElementById('price').value;
+            const description = document.getElementById('description').value;
+
+            try {
+                const response = await fetch(`${apiUrl}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price, description })
+                });
+                if (!response.ok) throw new Error(`Failed to update product`);
+                displayMessage('Product updated successfully!', 'success');
+                fetchProducts();
+                document.getElementById('product-form').reset();
+                document.getElementById('product-form').querySelector('button').textContent = 'Add Product';
+            } catch (error) {
+                displayMessage(`Error updating product: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteProduct(id) {
+            try {
+                const response = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to delete product');
+                displayMessage('Product deleted successfully!', 'success');
+                fetchProducts();
+            } catch (error) {
+                displayMessage(`Error deleting product: ${error.message}`, 'error');
+            }
+        }
+
+        function displayMessage(message, type) {
+            messageDiv.textContent = message;
+            messageDiv.className = type;
+        }
+
+        document.getElementById('product-form').addEventListener('submit', function(event) {
+            const id = event.target.dataset.id;
+            if (id) {
+                updateProduct(id);
+            } else {
+                addProduct(event);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', fetchProducts);
+    </script>
+</body>
+</html>
